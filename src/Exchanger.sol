@@ -2,8 +2,11 @@
 pragma solidity ^0.8.17;
 
 import {IERC20} from "openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from 'openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
+import {console} from 'forge-std/console.sol';
 
 contract Exchanger {
+  using SafeERC20 for IERC20;
   event ExchangeInitiated(uint256 id, address from, address to);
 
   struct Exchange {
@@ -26,6 +29,8 @@ contract Exchanger {
     uint256 duration,
     bytes32 hash
   ) external {
+    // string memory sel = iToHex(abi.encodePacked(abi.encodeWithSelector(IERC20.transferFrom.selector, msg.sender, address(this), amount)));
+    // console.log(sel);
     Exchange memory exchange = Exchange(
       msg.sender,
       beneficiar,
@@ -36,7 +41,7 @@ contract Exchanger {
       false
     );
     exchanges.push(exchange);
-    USDT.transferFrom(msg.sender, address(this), amount);
+    USDT.safeTransferFrom(msg.sender, address(this), amount);
     emit ExchangeInitiated(exchanges.length - 1, msg.sender, beneficiar);
   }
 
@@ -51,7 +56,7 @@ contract Exchanger {
       "Expired"
     );
 
-    USDT.transfer(exchange.beneficiar, exchange.sum);
+    USDT.safeTransfer(exchange.beneficiar, exchange.sum);
   }
 
   function cancel(uint256 id) external {
@@ -62,6 +67,6 @@ contract Exchanger {
       "Not expired"
     );
     require(exchange.finished == false, "Redeemed");
-    USDT.transfer(exchange.beneficiar, exchange.sum);
+    USDT.safeTransfer(exchange.beneficiar, exchange.sum);
   }
 }
