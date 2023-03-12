@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
+pragma solidity ^0.8.17;
 
 import {ERC20} from "openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "openzeppelin/contracts/access/Ownable.sol";
@@ -29,10 +29,10 @@ contract ExcangerTest is Test {
     vm.deal(user1, 100 ether);
     vm.deal(user2, 100 ether);
 
-    exchanger = new Exchanger();
+    exchanger = new Exchanger(USDT);
   }
 
-  function testStartExhange() external {
+  function testStartExchange() external {
     uint256 EXCHANGE_AMOUNT = 100_000_000;
     uint256 prevBal = USDT.balanceOf(user1);
     vm.startPrank(user1);
@@ -42,7 +42,7 @@ contract ExcangerTest is Test {
     console.log(prevBal);
     exchanger.createExchange(user2, EXCHANGE_AMOUNT, 60, keccak256("kediler"));
     // TODO check ExchangeInitiated(id: 0, from: User 1: [0xF977814e90dA44bFA03b6295A0616a897441aceC], to: User 2: [0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503])
-    vm.changePrank(user2);
+    changePrank(user2);
     // TODO check wrong key
     exchanger.redeem(0, bytes("kediler"));
     // TODO check balances

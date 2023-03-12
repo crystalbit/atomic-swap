@@ -3,11 +3,12 @@ pragma solidity ^0.8.17;
 
 import {IERC20} from "openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from 'openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import {console} from 'forge-std/console.sol';
+// import {console} from 'forge-std/console.sol';
 
 contract Exchanger {
   using SafeERC20 for IERC20;
-  event ExchangeInitiated(uint256 id, address from, address to);
+  event ExchangeInitiated(uint256 id, address from, address to, bytes32 hash);
+  event RedeemSuccessful(uint256 id, bytes key);
 
   struct Exchange {
     address sender;
@@ -19,9 +20,16 @@ contract Exchanger {
     bool finished;
   }
 
-  IERC20 constant USDT = IERC20(0xdAC17F958D2ee523a2206206994597C13D831ec7);
+  IERC20 immutable token;
+  // 0x07865c6E87B9F70255377e024ace6630C1Eaa37F USDC Goerli
+  // 0x5425890298aed601595a70AB815c96711a31Bc65 USDC fuji
+  // 0xdAC17F958D2ee523a2206206994597C13D831ec7 mainnet for tests
 
   Exchange[] public exchanges;
+
+  constructor(IERC20 tokenAddress) {
+    token = tokenAddress;
+  }
 
   function createExchange(
     address beneficiar,
@@ -29,8 +37,6 @@ contract Exchanger {
     uint256 duration,
     bytes32 hash
   ) external {
-    // string memory sel = iToHex(abi.encodePacked(abi.encodeWithSelector(IERC20.transferFrom.selector, msg.sender, address(this), amount)));
-    // console.log(sel);
     Exchange memory exchange = Exchange(
       msg.sender,
       beneficiar,
@@ -41,8 +47,8 @@ contract Exchanger {
       false
     );
     exchanges.push(exchange);
-    USDT.safeTransferFrom(msg.sender, address(this), amount);
-    emit ExchangeInitiated(exchanges.length - 1, msg.sender, beneficiar);
+    token.safeTransferFrom(msg.sender, address(this), amount);
+    emit ExchangeInitiated(exchanges.length - 1, msg.sender, beneficiar, hash);
   }
 
   function redeem(uint256 id, bytes memory key) external {
@@ -56,7 +62,8 @@ contract Exchanger {
       "Expired"
     );
 
-    USDT.safeTransfer(exchange.beneficiar, exchange.sum);
+    token.safeTransfer(exchange.beneficiar, exchange.sum);
+    emit RedeemSuccessful(id, key);
   }
 
   function cancel(uint256 id) external {
@@ -67,6 +74,6 @@ contract Exchanger {
       "Not expired"
     );
     require(exchange.finished == false, "Redeemed");
-    USDT.safeTransfer(exchange.beneficiar, exchange.sum);
+    token.safeTransfer(exchange.beneficiar, exchange.sum);
   }
 }
